@@ -86,6 +86,9 @@ The system uses MySQL for scalability and future expansion. The database is mana
 ### Apache and mod_wsgi Deployment  
 The application is deployed using Apache and mod_wsgi, ensuring stability and security.  
 
+### Docker Volumes
+The Flask application (Apache/mod_wsgi) and the MySQL database are containerized separately using Docker Compose.
+
 ### Low Coupling Design  
 A low-coupling design approach enhances code readability and maintainability, making the system easier to extend and debug.
 
@@ -102,4 +105,5 @@ The system employs `pytest` for unit testing, utilizing a dedicated test databas
 - SQLAlchemy - MySQL  
 - JavaScript  
 - HTML/CSS  
-- Apache - mod_wsgi  
+- Apache - mod_wsgi
+- Docker 
