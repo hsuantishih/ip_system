@@ -1,0 +1,67 @@
+.inputform {
+    width: 80%;
+    margin: 0px;
+    display: flex;
+    font-weight: 400;
+    padding: 5px;
+    font-size: 14px;
+    justify-content: center;
+}
+
+.searchlabel {
+    padding: 10px;
+    color: #555;
+    background-color: #eee;
+    border: 1px solid #ccc;
+    border-radius: 4px 0px 0px 4px;
+    text-align: center;
+    margin: 5px 0px 5px 5px;
+}
+
+.option {
+    font-family: 'Lato', 微軟正黑體;
+    width: 60%;
+    text-align: left;
+    padding: 8px 12px;
+    border: 1px solid #d99c4e;
+    outline: none;
+    box-shadow: none;
+    border-radius: 0px 4px 4px 0px;
+    margin: 5px 5px 5px 0px;
+}
+
+.btn-classify:hover {
+    background-color: #265a88;
+}
+
+.btn-classify {
+    color: #ffffff;
+    background-color: #00aa9d;
+    display: inline-block;
+    padding: 6px 10px;
+    margin:8px ;
+    font-size: 14px;
+    font-weight: normal;
+    text-align: center;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-radius: 4px;
+}
+
+form {
+    height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+form h3 {
+    color: #a5732a;
+    display: block;
+    font: 20px "微軟正黑體",arial,verdana,tahoma;
+    padding: 0;
+    text-align: center;
+    margin: 5px;
+}

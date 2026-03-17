@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block style %}
+<link rel="stylesheet" href="{{ url_for('user.static', filename='user/css/user.css') }}">
+{% endblock %}
+
+{% block navbar %}
+    <a href="{{ url_for('user.allocation') }}">管理平台</a>
+    <a href="{{ url_for('user.apply') }}">申請紀錄</a>
+    <a href="{{ url_for('auth.logout') }}">登出</a>
+{% endblock %}
+
+{% include 'toast.html' %}
+
+{% block content %}
+
+<div class="text-content">
+    <h3>注意事項</h3>
+    <ul>
+        <li>使用者 IP 位址 {{ user_ip }}</li>
+        <li>以下網段若有重疊，表示網段已更動，系統將依需求再做分配</li>
+    </ul>
+</div>
+
+<div class="table-center">
+    <table class="list" id="HostTable">
+        <thead>
+            <tr>
+                <th class="list_th" scope="col">Type</th>
+                <th class="list_th" scope="col">Class C</th>
+                <th class="list_th" scope="col">Min</th>
+                <th class="list_th" scope="col">Max</th>
+                <th class="list_th" scope="col">IP數</th>
+                <th class="list_th list_deptname" scope="col">使用單位名稱</th>
+                <th class="list_th" scope="col">勾選</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for host in host_list %}
+            <tr id="{{ host.id }}">
+                <td class="list_td">{{ host.host_type }}</td>
+                <td class="list_td">{{ host.host_class_c }}</td>
+                <td class="list_td">{{ host.host_min }}</td>
+                <td class="list_td">{{ host.host_max }}</td>
+                <td class="list_td">{{ 2**(32 - host.subnet) - 2 }}</td>
+                <td class="list_td">{{ host.host_deptname }}</td>
+                <td class="list_td">
+                    {% if host.user_application %}
+                        {% if host.users | length == 2 %}
+                            {% if host.users[0].userid == user.userid or host.users[1].userid == user.userid %}
+                                已分配
+                            {% else %}
+                                申請中
+                            {% endif %}
+                        {% elif host.users | length == 1 %}
+                            {% if host.users[0].userid == user.userid %}
+                                已分配
+                            {% else %}
+                                申請中
+                            {% endif %}
+                        {% else %}
+                            申請中
+                        {% endif %}
+                    {% else %}
+                        <input type="checkbox" class="checkbox">
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<div class="inputform">
+    <button type="button" class="btn-submit" onclick="applyHosts()">申請</button>
+</div>
+<script>
+    function applyHosts() {
+        const HostTable = document.getElementById('HostTable');
+        const trElements = HostTable.querySelectorAll('tr');
+
+        var host_list = [];
+
+        for (let i = 1; i < trElements.length; i++) {
+            const checkbox = trElements[i].querySelector('input');
+            const tdElements = trElements[i].querySelectorAll("td");
+
+            console.log(tdElements);
+
+            if (checkbox && checkbox.checked) {
+                host_list.push(trElements[i].id);
+
+                tdElements[6].textContent = "申請中";
+                checkbox.style.display = "none";
+            }
+        }
+
+        console.log(host_list);
+        
+        fetch('/apply/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(host_list),
+            })
+            .then(response => {
+                return response.json();
+            })
+            .then(data => {
+                slideInToast(data['title'], data['content']);
+            })
+            .catch(error => {
+                console.log(error);
+            })
+    }
+</script>
+
+{% endblock %}

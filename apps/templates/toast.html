@@ -1,0 +1,47 @@
+<!-- for ajax flash message -->
+<div id="wrapper" class="wrapper" style="display: none;">
+    <div class="toast" id="toast">
+        <h5></h5>
+        <h6></h6>
+    </div>
+</div>
+
+<script>
+    function slideInToast(title, content) {
+        const wrapper = document.getElementById('wrapper');
+        const toast = document.getElementById('toast');
+
+        const toastTitle = document.querySelector('#toast h5');
+        const toastContent = document.querySelector('#toast h6');
+
+        if (title === "success") {
+            toastTitle.textContent = "Success";
+            toast.classList.add('success');
+        } else if (title === "alert") {
+            toastTitle.textContent = "Alert";
+            toast.classList.add('alert');
+        }
+        
+        wrapper.style.display = "block";
+        toastContent.textContent = content;
+
+        setTimeout(function (){
+            // 3s 後執行slideout
+            toast.classList.add('leave');
+
+            setTimeout(function () {
+                // 0.5s 後初始class list
+                
+                if (toast.classList.contains('success')) {
+                    toast.classList.remove('success');
+                } else if (toast.classList.contains('alert')) {
+                    toast.classList.remove('alert');
+                }
+                toast.classList.remove('leave');
+
+                wrapper.style.display = 'none';
+
+            }, 500);
+        }, 3000);
+    }
+</script>

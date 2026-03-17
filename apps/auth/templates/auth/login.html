@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block style %}
+<link rel="stylesheet" href="{{ url_for('auth.static', filename='auth/css/login.css') }}">
+{% endblock %}
+
+{% block navbar %}
+    <a href="{{ url_for('admin.list') }}">管理平台</a>
+    <a href="{{ url_for('auth.login') }}">登入</a>
+{% endblock %}
+
+{% block content %}
+
+    <form method="post">
+        {{ loginform.hidden_tag() }}
+        <h3>使用帳號密碼登入</h3>
+        <div class="inputform">
+            {{ loginform.account.label(class="searchlabel") }}
+            {{ loginform.account(class="option") }}
+        </div>
+        <div class="inputform">
+            {{ loginform.password.label(class="searchlabel") }}
+            {{ loginform.password(class="option") }}
+        </div>
+        <div class="inputform">
+            {{ loginform.submit(class="btn-classify") }}
+        </div>
+    
+    </form>
+
+    <script>
+
+    </script>
+
+{% endblock %}

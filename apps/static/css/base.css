@@ -1,0 +1,160 @@
+html {
+    height: 100%;
+}
+body {
+    display: flex;
+    flex-direction: column;
+    background: #f1efe4;
+    height: 100%;
+    font-family: 'Lato', 微軟正黑體;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 22px;
+    color: #000000;
+    padding: 0;
+    margin: 0 120px;
+    max-width: calc(100% - 240px);
+}
+
+.navbar {
+    justify-content: space-between;
+    margin-top: 0;
+    margin-bottom: 0px;
+    padding: 8px 20px 5px 20px;
+    display: flex;
+    background-color: #7D171B;
+    color: #555559;
+    height: 50px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.navbar-left {
+    display: flex;
+}
+
+.navbar-left img {
+    max-width: 100%;
+    height: auto;
+}
+
+.navbar-right {
+    display: flex;
+    justify-content: space-between;
+}
+
+.navbar-right a {
+    display: grid;
+    color: #000000;
+    font-size: 13px;
+    font-weight: 400;
+    background-color: #e7e4d0;
+    cursor: pointer;
+    padding: 15px;
+    margin: 2px;
+    text-decoration: none;
+    align-content: center;
+}
+
+.navbar-right a:first-child {
+    border-radius: 15px 0 0 15px;
+}
+
+.navbar-right a:last-child {
+    border-radius: 0 15px 15px 0;
+}
+
+.navbar-right a:hover {
+    color: #c61818;
+}
+
+.navbar-name {
+    display: block;
+    background: #bd3135 none no-repeat scroll center top;
+    color: #f1efe4;
+    font: 20px 微軟正黑體;
+    text-align: center;
+    border-top: 2px solid #9c2a2e;
+    padding: 7px;
+    box-shadow: 0px 4px 6px #dcdcdc;
+}
+
+.content {
+    flex: 1;
+    background-color: white;
+    padding: 30px;
+    max-width: calc(100% - 60px);
+}
+
+.wrapper {
+    overflow: hidden;
+    position: fixed;
+    top: 100px;
+    right: 15px;
+    width: 300px;
+    height: 80px;
+    z-index: 998;
+}
+
+.toast {
+    right: -240px;
+    position: absolute;
+    background-color: #FFFFFF;
+    width: 200px;
+    height: 50px;
+    box-shadow: 0 2px 4px rgb(0,0,0,0.2);
+    border-radius: 5px;
+    text-align: left;
+    padding: 12px;
+    animation: slideIn 0.5s forwards 0.5s;
+    z-index: 999;
+}
+
+@keyframes slideIn {
+    100% { right: 15px; }
+}
+
+.toast.leave {
+    animation: slideOut 0.5s forwards;
+}
+
+@keyframes slideOut {
+    /* 0%: 初始位置要和之前一樣 */
+    0% { right: 15px; }
+    100% { right: -240px; }
+}
+
+.toast.success {
+    border-left: 8px solid #47d764 ;
+    display: block;
+}
+
+.toast.alert {
+    border-left: 8px solid #FFB700 ;
+    display: block;
+}
+
+.toast h5,
+.toast h6 {
+    font-family:sans-serif;
+    margin: 0.5px;
+    padding: 1px;
+}
+
+.toast h5 {
+    font-size: 18px;
+    color: #4c4c50;
+}
+
+.toast h6 {
+    margin-top: 1px;
+    font-size: 12px;
+    color: #8d8d93;
+}
+
+.footer {
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}

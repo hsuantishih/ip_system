@@ -1,0 +1,527 @@
+{% extends 'base.html' %}
+
+{% block style %}
+<link rel="stylesheet" href="{{ url_for('admin.static', filename='admin/css/manage.css') }}">
+{% endblock %}
+
+{% include 'toast.html' %}
+
+{% block navbar %}
+<a href="{{ url_for('admin.list') }}">首頁</a>
+<a href="{{ url_for('admin.list') }}">IP網段</a>
+<a href="{{ url_for('admin.manage') }}">申請紀錄</a>
+<a href="{{ url_for('auth.logout') }}">登出</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="table-center">
+    <table class="list" id="HostTable">
+        <thead>
+            <tr>
+                <th class="list_th" scope="col">Type</th>
+                <th class="list_th" scope="col">Class C</th>
+                <th class="list_th" scope="col">Min</th>
+                <th class="list_th" scope="col">Max</th>
+                <th class="list_th" scope="col">IP數</th>
+                <th class="list_th list_deptname" scope="col">使用單位名稱</th>
+                <th class="list_th" scope="col">管理員人數</th>
+                <th class="list_th" scope="col">申請人</th>
+                <th class="list_th" scope="col">證號</th>
+                <th class="list_th" scope="col">狀態</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for host, user in user_applications %}
+            <tr id="{{ host.id }}" onclick="searchData(this)">
+                <td class="list_td">{{ host.host_type }}</td>
+                <td class="list_td">{{ host.host_class_c }}</td>
+                <td class="list_td">{{ host.host_min }}</td>
+                <td class="list_td">{{ host.host_max }}</td>
+                <td class="list_td">{{ 2**(32 - host.subnet) - 2 }}</td>
+                <td class="list_td">{{ host.host_deptname }}</td>
+                <td class="list_td">{{ host.users|length }}</td>
+                <td class="list_td">{{ user.username }}</td>
+                <td class="list_td">{{ user.userid }}</td>
+                <td class="list_td">
+                    {% if host.deleted %}
+                    網段已更動
+                    {% else %}
+                        {% if host.users | length == 1 %}
+                            {% if host.users[0].username == user.username %}
+                                已指派
+                            {% else %}
+                                <button class="btn-edit" type="button" onclick="assignMgr(this)">指派</button>
+                            {% endif %}
+                        {% elif host.users | length == 2 %}
+                            {% if host.users[0].username == user.username or host.users[1].username == user.username %}
+                                已指派
+                            {% else %}
+                                <button class="btn-edit" type="button" onclick="assignMgr(this)">指派</button>
+                            {% endif %}
+                        {% else %}
+                            <button class="btn-edit" type="button" onclick="assignMgr(this)">指派</button>
+                        {% endif %}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- popup -->
+<div id="overlay" class="overlay" style="display: none;">
+    <div class="popup-border">
+        <div id="popup" class="popup">
+            <div class="popup-col">
+                <div class="popup-host-col">
+                    <div class="popup-subheader">
+                        <h4>IP 網段</h4>
+                    </div>
+                    <div id="hostContent" class="popup-content">
+                        <table>
+                            <tr>
+                                <th>Host Min</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>Host Max</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>Host Gateway</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>Subnet</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>網段數</th>
+                                <td></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="popup-department-col">
+                    <div class="popup-subheader">
+                        <h4>使用單位</h4>
+                    </div>
+                    <div id="departmentContent" class="popup-content">
+                        <table>
+                            <tr>
+                                <th>名稱</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>備註</th>
+                                <td></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="popup-main-manager-col">
+                    <div class="popup-subheader">
+                        <h4>管理員(一)</h4>
+                    </div>
+                    <div id="mainManagerContent" class="popup-content">
+                        <table>
+                            <tr>
+                                <th>單位</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>管理員</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>人員證號</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>身分</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>聯絡電話</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>信箱</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>配置地點</th>
+                                <td></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="popup-sub-manager-col">
+                    <div class="popup-subheader">
+                        <h4>管理員(二)</h4>
+                    </div>
+                    <div id="subManagerContent" class="popup-content">
+                        <table>
+                            <tr>
+                                <th>單位</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>管理員</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>人員證號</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>身分</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>聯絡電話</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>信箱</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>配置地點</th>
+                                <td></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="popup-footer">
+                    <button class="btn-edit" onclick="redirectToPage()">編輯</button>
+                    <button id="removeBtn" class="btn-edit" onclick="removeButton()" style="display: none;">移除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- popup alert -->
+<div id="overlay-alert" class="overlay" style="display: none;">
+    <div class="popup-border">
+        <div id="popup-alert" class="popup">
+            <div class="popup-col alert-col">
+                <div class="popup-subheader">
+                    <h4>注意事項</h4>
+                </div>
+                <div class="popup-content alert-content">
+                    <p>使用者原先申請的IP網段已更動<br>
+                        (e.g. 合併或分割)<br>
+                        需自行到IP網段指派該管理員</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    // Redirect to Other Page
+    function redirectToPage() {
+        const hostContent = document.getElementById("hostContent");
+        const tables = hostContent.getElementsByTagName('table');
+
+        const host_id = tables[0].id;
+        window.location.href = `/assign/${host_id}`;
+    }
+
+    // Ajax delete host item
+    function removeButton() {
+        const confirmDelete = confirm("確定要移除嗎?");
+
+        const hostContent = document.getElementById("hostContent");
+        const tables = hostContent.getElementsByTagName('table');
+
+        const hostid = [tables[0].id];
+
+        if (confirmDelete) {
+            // Ajax
+            fetch('/list/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(hostid),
+            })
+                .then(response => {
+                    return response.json();
+                })
+                .then(data => {
+                    removeData();
+                    slideInToast(data['title'], data['content']);
+                })
+                .catch(error => {
+                    console.log(error);
+                })
+        }
+    }
+
+    // Change background color base on class c
+    var table = document.getElementById("HostTable");
+    var rows = table.getElementsByTagName("tr");
+    for (var i = 2; i < rows.length; i++) {
+        var row = rows[i];
+        var cells = row.getElementsByTagName("td");
+        var classCell = cells[1];
+
+        // previous row
+        if (i - 1 > 0) {
+            var prevRow = rows[i - 1];
+            var prevCells = prevRow.getElementsByTagName("td");
+            var prevClassCell = prevCells[1];
+
+            // 判斷跟上一行值是否相等
+            if (classCell.textContent !== prevClassCell.textContent) {
+                if (!prevRow.classList.contains('block')) {
+                    row.classList.add('block');
+                }
+            } else {
+                if (prevRow.classList.contains('block')) {
+                    row.classList.add('block');
+                }
+            }
+        }
+    }
+    // Popup
+    function displayPopUp(data) {
+        const overlay = document.getElementById("overlay");
+        const popup = document.getElementById('popup');
+        const removeBtn = document.getElementById('removeBtn');
+
+        console.log(data);
+
+        if (Object.keys(data['user']).length === 0) {
+            const popupMainMgr = document.querySelector('.popup-main-manager-col');
+            const popupSubMgr = document.querySelector('.popup-sub-manager-col');
+
+            popupMainMgr.style.display = 'none';
+            popupSubMgr.style.display = 'none';
+        } else {
+            if (Object.keys(data['user']).length === 1) {
+                const popupSubMgr = document.querySelector('.popup-sub-manager-col');
+                popupSubMgr.style.display = 'none';
+            }
+            updateMgr(data['user']);
+            removeBtn.style.display = 'block';
+        }
+
+        var host = data['host'];
+
+        if (host['host_deptname'] === '') {
+            const popupDept = document.querySelector('.popup-department-col');
+
+            popupDept.style.display = 'none';
+        } else {
+            updateDept(data['host']);
+            removeBtn.style.display = 'block';
+        }
+
+        updateHost(data['host']);
+
+        overlay.style.display = 'flex';
+
+        window.addEventListener("click", function (event) {
+            // 如果点击的目标不是弹出窗口或其内部元素，则关闭弹出窗口
+            if (event.target === overlay) {
+                const popupDept = document.querySelector('.popup-department-col');
+                const popupMainMgr = document.querySelector('.popup-main-manager-col');
+                const popupSubMgr = document.querySelector('.popup-sub-manager-col');
+                const removeBtn = document.getElementById('removeBtn');
+
+                popupDept.style.display = 'grid';
+                popupMainMgr.style.display = 'grid';
+                popupSubMgr.style.display = 'grid';
+                removeBtn.style.display = 'none';
+
+                overlay.style.display = 'none';
+            }
+        });
+
+    }
+
+    function updateHost(host) {
+        const hostMin = host['host_type'] + host['host_class_c'] + host['host_min'];
+        const hostMax = host['host_type'] + host['host_class_c'] + host['host_max'];
+        const gateway = host['host_type'] + host['host_class_c'] + host['gateway'];
+        const subnet = host['subnet'];
+        const ipNum = 2 ** (32 - subnet) - 2;
+
+        const hostData = [hostMin, hostMax, gateway, subnet, ipNum];
+
+        const hostContent = document.getElementById('hostContent');
+        const tables = hostContent.getElementsByTagName('table');
+        const tdElements = tables[0].getElementsByTagName('td');
+
+        tables[0].id = host['id'];
+
+        for (let i = 0; i < tdElements.length; i++) {
+            tdElements[i].textContent = hostData[i];
+        }
+    }
+
+    function updateMgr(user) {
+        const mainManager = user[0];
+
+        const managerData = [mainManager['deptname'], mainManager['username'], mainManager['userid'], mainManager['ident'], mainManager['officephone'], mainManager['email'], mainManager['allocation']];
+
+        const managerContent = document.getElementById('mainManagerContent');
+        const tables = managerContent.getElementsByTagName('table');
+        const tdElements = tables[0].getElementsByTagName('td');
+
+        for (let i = 0; i < tdElements.length; i++) {
+            tdElements[i].textContent = managerData[i];
+        }
+
+        if (user[1]) {
+            const subManager = user[1];
+
+            const managerData = [subManager['deptname'], subManager['username'], subManager['userid'], subManager['ident'], subManager['officephone'], subManager['email'], subManager['allocation']];
+
+            const managerContent = document.getElementById('subManagerContent');
+            const tables = managerContent.getElementsByTagName('table');
+            const tdElements = tables[0].getElementsByTagName('td');
+
+            for (let i = 0; i < tdElements.length; i++) {
+                tdElements[i].textContent = managerData[i];
+            }
+        }
+    }
+
+    function updateDept(host) {
+        const deptData = [host['host_deptname'], host['comment']];
+
+        const departmentContent = document.getElementById('departmentContent');
+        const tables = departmentContent.getElementsByTagName('table');
+        const tdElements = tables[0].getElementsByTagName('td');
+
+        for (let i = 0; i < tdElements.length; i++) {
+            tdElements[i].textContent = deptData[i];
+        }
+    }
+
+    function searchData(button) {
+        const tdElements = button.querySelectorAll('td');
+
+        if (tdElements[9].textContent.trim() == "網段已更動") {
+            displayAlertPopUp();
+        } else {
+            id = button.id;
+
+            fetch('/list/query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(id),
+            })
+                .then(response => {
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(data);
+                    displayPopUp(data);
+                })
+                .catch(error => {
+                    console.log(error);
+                })
+        }
+
+    }
+
+    function removeData() {
+        const hostContent = document.getElementById("hostContent");
+        const tables = hostContent.getElementsByTagName('table');
+
+        const host_id = tables[0].id;
+
+        const trHost = document.querySelector(`tr[id="${host_id}"]`);
+        const tdElements = trHost.getElementsByTagName('td');
+
+        tdElements[5].textContent = '';
+        tdElements[6].textContent = '0';
+
+        const overlay = document.getElementById("overlay");
+        overlay.click();
+        slideInToast("success", "成功移除資料");
+    }
+
+
+    // check whether host has been modified
+    function displayAlertPopUp() {
+        const overlay = document.getElementById("overlay-alert");
+
+        overlay.style.display = 'flex';
+
+        window.addEventListener("click", function (event) {
+            if (event.target === overlay) {
+                overlay.style.display = 'none';
+            }
+        })
+    }
+
+    // assign Manager
+    function assignMgr(button) {
+        // 避免 tr.onclick 觸發
+        event.stopPropagation();
+
+        const trElement = button.closest('tr');
+        const tdElements = trElement.querySelectorAll('td');
+
+        var managerNum = parseInt(tdElements[6].textContent);
+
+        if (managerNum < 2) {
+            var comfirmation = confirm(`目前管理員人數為 ${managerNum}\n是否指派為管理員?`);
+
+            // 將管理員新增進資料庫
+            if (comfirmation) {
+                const hostId = trElement.id;
+                const userUserId = tdElements[8].textContent;
+
+                const data = {
+                    "host_id": hostId,
+                    "user_userid": userUserId,
+                }
+
+                fetch('/manage/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data),
+                })
+                    .then(response => {
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log(data);
+                        slideInToast(data['title'], data['content']);
+
+                        // 更改管理員人數
+                        if (data['title'] == "success") {
+                            tdElements[6].textContent = managerNum + 1;
+                            tdElements[9].textContent = "已指派";
+                            button.style.display = "none";
+                        }
+                    })
+                    .catch(error => {
+                        console.log(error);
+                    })
+            }
+
+        } else {
+            // 超過管理員人數
+            alert(`目前管理員人數為 ${managerNum}\n已超過人數限制，需先移除現有管理員`);
+        }
+
+        }
+</script>
+
+{% endblock %}

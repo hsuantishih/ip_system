@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP管理系統</title>
+    <link rel="stylesheet" href="../static/css/base.css">
+    {% block style %}
+    {% endblock %}
+</head>
+<body>
+    <!-- header -->
+    <div class="navbar">
+        <div class="navbar-left">
+            <img src="../static/img/LogoText.png">
+        </div>
+        <div class="navbar-right">
+            {% block navbar %}
+            {% endblock %}
+        </div>
+    </div>
+    <div class="navbar-name">
+        <span>IP管理系統</span>
+    </div>
+
+    <!-- flash message -->
+    {% with messages =  get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div id="flash-wrapper" class="wrapper">
+                <div class="toast {{ category }}" id="flash-toast" style="display: block;">
+                    <h5>{{ category|capitalize }}</h5>
+                    <h6>{{ message }}</h6>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- content -->
+    <div class="content">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <!-- footer -->
+    <div class="footer">
+        <p>如有任何問題，請連絡相關人員<br>版權所有©2023 國立成功大學 計算機與網路中心</p>
+    </div>
+
+    <script>
+        // Hide the toast after 3.5 seconds
+        setTimeout(function () {
+            const toastElement = document.getElementById('flash-toast');
+            const wrapperElement = document.getElementById('flash-wrapper');
+
+            toastElement.classList.add('leave');
+
+            setTimeout(function () {
+                // 清除框架
+                wrapperElement.style.display = 'none';
+            }, 500)
+        }, 3000); 
+        
+        // 固定重整畫面
+        function reloadPosition() {
+            // 刷新页面
+            setTimeout(function() {
+                var scrollPosition = window.scrollY || document.documentElement.scrollTop;
+
+                location.reload();
+
+                // 恢复之前的滚动位置
+                window.scrollTo(0, scrollPosition);
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+version: '3.7'
+services:
+  app:
+    build: ./apps
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql
+    restart: on-failure
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=ipsystem
+    ports:
+      - "5002:3306"

@@ -1,0 +1,1124 @@
+{% extends 'base.html' %}
+
+{% block style %}
+<link rel="stylesheet" href="{{ url_for('admin.static', filename='admin/css/assign.css') }}">
+{% endblock %}
+
+{% block navbar %}
+    <a href="{{ url_for('admin.list') }}">首頁</a>
+    <a href="{{ url_for('admin.list') }}">IP網段</a>
+    <a href="{{ url_for('admin.manage') }}">申請紀錄</a>
+    <a href="{{ url_for('auth.logout') }}">登出</a>
+{% endblock %}
+
+
+{% block content %}
+
+{% include 'toast.html' %}
+
+{% if hosts %}
+    <!-- 衝突資料 -->
+    <div class="container">
+        <div class="container-header">
+            <div class="container-header-left">
+                <button class="btn-toggle show" type="button" onclick="toggleContainer(this)">需檢查清單▲</button>
+            </div>
+            <div class="container-header-right">
+                <button class="btn-submit" onclick="removeHostTableData()">一鍵移除</button>
+            </div>
+        </div>
+        <div class="container-content" style="display: block;">
+            {% include 'table.html' %}
+        </div>
+    </div>  
+{% endif %}
+
+{{ searchform.hidden_tag() }}
+<div class="container">
+    <div class="container-header">
+        <div class="container-header-left">
+            <button class="btn-toggle" type="button" onclick="toggleContainer(this)">人員查詢系統▲</button>
+        </div>
+        <div class="container-header-right">
+        </div>
+    </div>
+    <div class="container-content" style="display: block;">
+        <div class="searchform">
+            {{ searchform.query.label(class="querylabel") }}
+            {{ searchform.query(id="input-value", class="query") }}
+            {{ searchform.search(class="btn-search", onclick="searchManager()") }}
+
+            <div id="loading-search" class="lds-dual-ring" style="display: none;"></div>
+        </div>
+
+        <table id="searchTable">
+            <thead>
+                <tr>
+                    <th scope="col">序號</th>
+                    <th scope="col">身分</th>
+                    <th scope="col">單位編號</th>
+                    <th scope="col">單位名稱</th>
+                    <th scope="col">人員證號</th>
+                    <th scope="col">人員姓名</th>
+                    <th scope="col">分機</th>
+                    <th scope="col">指定</th>
+                </tr>
+            </thead>
+            <tbody id="search-result" style="display: none;">
+                <tr>
+                    <td>1</td>
+                    <td data-field="ident"></td>
+                    <td data-field="deptcode"></td>
+                    <td data-field="deptname"></td>
+                    <td data-field="userid"></td>
+                    <td data-field="username"></td>
+                    <td data-field="officephone"></td>
+                    <td>
+                        <button class="btn-edit" onclick="assignManager(this)">管理員(一)</button>
+                        <button class="btn-edit" onclick="assignManager(this)">管理員(二)</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<form method="post" id="dataForm">
+    {{ hostform.hidden_tag() }}
+    {{ main_managerform.hidden_tag() }}
+    {{ sub_managerform.hidden_tag() }}
+
+    <div class="container">
+        <div class="container-header">
+            <div class="container-header-left">
+                <button id="hostBtn" type="button" class="btn-tag selected">單位 IP 網段</button>
+                <button id="managerBtn" type="button" class="btn-tag selected">指定管理員</button>
+            </div>
+            <div class="container-header-right">
+                <div id="loading-check" class="lds-dual-ring" style="display: none;"></div>
+                <button class="btn-submit" onclick="removeManager()">移除管理員</button>
+                {{ hostform.submit(class="btn-submit") }}
+            </div>
+        </div>
+        <div class="container-content">
+            <!-- Form -->
+            <div class="table-row">
+                <div id="table-col-host" class="initial-hostform">
+                    {% if merge_form_data %}
+                        <table id="hostFormTable">
+                            <tr>
+                                <th>IP</th>
+                                <td>
+                                    <!-- 將資料庫的資料預設給選項 -->
+                                    {% set selected_host_type = hostform.ip_ab.process_data(merge_form_data[0].ip_ab) %}
+                                    <div class="tableform">
+                                        {{ hostform.ip_ab(class="input", id="ip_ab", onchange="Calculate()") }}
+                                        .{{ hostform.ip_c(class="input", id="ip_c", onchange="Calculate()", placeholder=merge_form_data[0].ip_c, value=merge_form_data[0].ip_c) }}
+                                        .{{ hostform.ip_d(class="input", id="ip_d", onchange="Calculate()", placeholder=merge_form_data[0].ip_d, value=merge_form_data[0].ip_d) }}
+                                    </div>
+                                </td>
+                                <th>Subet</th>
+                                <td>
+                                    {% set selected_subnet = hostform.subnet.process_data(merge_form_data[0].subnet) %}
+                                    <div class="tableform">
+                                        {{ hostform.subnet(class="input", id="subnet", onchange="Calculate()") }}
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Host Min</th>
+                                <td colspan="3">
+                                    <div class="tableform">
+                                        {{ hostform.hostMin(class="input", id="hostMin",
+                                        placeholder=merge_form_data[0].hostMin,
+                                        value=merge_form_data[0].hostMin) }}
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Host Max</th>
+                                <td colspan="3">
+                                    <div class="tableform">
+                                        {{ hostform.hostMax(class="input", id="hostMax",
+                                        placeholder=merge_form_data[0].hostMax,
+                                        value=merge_form_data[0].hostMax) }}
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Netmask</th>
+                                <td colspan="3">
+                                    <div class="tableform">
+                                        {{ hostform.netmask(class="input", id="netmask", placeholder=merge_form_data[0].netmask, value=merge_form_data[0].netmask) }}
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Gateway</th>
+                                <td colspan="3">
+                                    <div class="tableform">
+                                        {{ hostform.gateway(class="input", id="gateway",
+                                        placeholder=merge_form_data[0].gateway,
+                                        value=merge_form_data[0].gateway) }}
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>單位名稱</th>
+                                <td colspan="3">
+                                    <div class="tableform">
+                                        {{ hostform.host_deptname(class="input", placeholder=merge_form_data[0].host_deptname, value=merge_form_data[0].host_deptname) }}
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>備註</th>
+                                <td colspan="3">
+                                    <div class="tableform">
+                                        {{ hostform.comment(class="input", placeholder=current_host.comment, value=current_host.comment) }}
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    {% else %}
+                        <table id="hostFormTable">
+                            <tr>
+                                <th>IP</th>
+                                <td>
+                                    <!-- 將資料庫的資料預設給選項 -->
+                                    {% set selected_host_type = hostform.ip_ab.process_data(current_host.host_type) %}
+                                    <div class="tableform">
+                                        {{ hostform.ip_ab(class="input", id="ip_ab", onchange="Calculate()") }}
+                                        .{{ hostform.ip_c(class="input", id="ip_c", onchange="Calculate()", placeholder=current_host.host_class_c[1:], value=current_host.host_class_c[1:]) }}
+                                        .{{ hostform.ip_d(class="input", id="ip_d", onchange="Calculate()", placeholder=current_host.host_min[1:], value=current_host.host_min[1:]) }}
+                                    </div>
+                                </td>
+                                <th>Subet</th>
+                                <td>
+                                    {% set selected_subnet = hostform.subnet.process_data(current_host.subnet) %}
+                                    <div class="tableform">
+                                        {{ hostform.subnet(class="input", id="subnet", onchange="Calculate()") }}
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Host Min</th>
+                                <td colspan="3">
+                                    <div class="tableform">
+                                        {{ hostform.hostMin(class="input", id="hostMin",
+                                        placeholder=current_host.host_type ~ current_host.host_class_c ~ current_host.host_min,
+                                        value=current_host.host_type ~ current_host.host_class_c ~ current_host.host_min) }}
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Host Max</th>
+                                <td colspan="3">
+                                    <div class="tableform">
+                                        {{ hostform.hostMax(class="input", id="hostMax",
+                                        placeholder=current_host.host_type ~ current_host.host_class_c ~ current_host.host_max,
+                                        value=current_host.host_type ~ current_host.host_class_c ~ current_host.host_max) }}
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Netmask</th>
+                                <td colspan="3">
+                                    <div class="tableform">
+                                        {{ hostform.netmask(class="input", id="netmask", placeholder=current_host.netmask, value=current_host.netmask) }}
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Gateway</th>
+                                <td colspan="3">
+                                    <div class="tableform">
+                                        {{ hostform.gateway(class="input", id="gateway",
+                                        placeholder=current_host.host_type ~ current_host.host_class_c ~ current_host.gateway,
+                                        value=current_host.host_type ~ current_host.host_class_c ~ current_host.gateway) }}
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>單位名稱</th>
+                                <td colspan="3">
+                                    <div class="tableform">
+                                        {{ hostform.host_deptname(class="input", placeholder=current_host.host_deptname, value=current_host.host_deptname) }}
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>備註</th>
+                                <td colspan="3">
+                                    <div class="tableform">
+                                        {{ hostform.comment(class="input", placeholder=current_host.comment, value=current_host.comment) }}
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    {% endif %}
+                </div>
+                <div id="table-col-manager" class="initial-managerform">
+                    {% if merge_form_data %}
+                        {% if merge_form_data[1] %}
+                            <table id="mgrFormTable">
+                                <tr>
+                                    <th>單位名稱</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_deptname(class="input", placeholder=merge_form_data[1].main_deptname, value=merge_form_data[1].main_deptname) }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {% if merge_form_data[2] %}
+                                                {{ sub_managerform.sub_deptname(class="input", placeholder=merge_form_data[2].sub_deptname, value=merge_form_data[2].sub_deptname) }}
+                                            {% else %}
+                                                {{ sub_managerform.sub_deptname(class="input") }}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>管理員</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_username(class="input", placeholder=merge_form_data[1].main_username, value=merge_form_data[1].main_username) }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {% if merge_form_data[2] %}
+                                                {{ sub_managerform.sub_username(class="input", placeholder=merge_form_data[2].sub_username, value=merge_form_data[2].sub_username) }}
+                                            {% else %}
+                                                {{ sub_managerform.sub_username(class="input") }}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>人員證號</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_userid(class="input", placeholder=merge_form_data[1].main_userid, value=merge_form_data[1].main_userid) }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {% if merge_form_data[2] %}
+                                                {{ sub_managerform.sub_userid(class="input", placeholder=merge_form_data[2].sub_userid, value=merge_form_data[2].sub_userid) }}
+                                            {% else %}
+                                                {{ sub_managerform.sub_userid(class="input") }}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>身分</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_ident(class="input", placeholder=merge_form_data[1].main_ident, value=merge_form_data[1].main_ident) }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {% if merge_form_data[2] %}
+                                                {{ sub_managerform.sub_ident(class="input", placeholder=merge_form_data[2].sub_ident, value=merge_form_data[2].sub_ident) }}
+                                            {% else %}
+                                                {{ sub_managerform.sub_ident(class="input") }}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>聯絡電話</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_officephone(class="input", placeholder=merge_form_data[1].main_officephone, value=merge_form_data[1].main_officephone) }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {% if merge_form_data[2] %}
+                                                {{ sub_managerform.sub_officephone(class="input", placeholder=merge_form_data[2].sub_officephone, value=merge_form_data[2].sub_officephone) }}
+                                            {% else %}
+                                                {{ sub_managerform.sub_officephone(class="input") }}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>信箱</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_email(class="input", placeholder=merge_form_data[1].main_email, value=merge_form_data[1].main_email) }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {% if merge_form_data[2] %}
+                                                {{ sub_managerform.sub_email(class="input", placeholder=merge_form_data[2].sub_email, value=merge_form_data[2].sub_email) }}
+                                            {% else %}
+                                                {{ sub_managerform.sub_email(class="input") }}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>配置地點</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_allocation(class="input", placeholder=merge_form_data[1].main_allocation, value=merge_form_data[1].main_allocation) }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {% if merge_form_data[2] %}
+                                                {{ sub_managerform.sub_allocation(class="input", placeholder=merge_form_data[2].sub_allocation, value=merge_form_data[2].sub_allocation) }}
+                                            {% else %}
+                                                {{ sub_managerform.sub_allocation(class="input") }}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        {% else %}
+                            <table id="mgrFormTable">
+                                <tr>
+                                    <th>單位名稱</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_deptname(class="input") }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ sub_managerform.sub_deptname(class="input") }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>管理員</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_username(class="input") }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ sub_managerform.sub_username(class="input") }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>人員證號</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_userid(class="input") }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ sub_managerform.sub_userid(class="input") }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>身分</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_ident(class="input") }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ sub_managerform.sub_ident(class="input") }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>聯絡電話</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_officephone(class="input") }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ sub_managerform.sub_officephone(class="input") }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>信箱</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_email(class="input") }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ sub_managerform.sub_email(class="input") }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>配置地點</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_allocation(class="input") }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ sub_managerform.sub_allocation(class="input") }}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        {% endif %}
+                    {% else %}
+                        <!-- 有使用者的情況: 將使用者匯入表單 -->
+                        {% if current_host.users %}
+                            <table id="mgrFormTable">
+                                <tr>
+                                    <th>單位名稱</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_deptname(class="input", placeholder=current_host.users[0].deptname, value=current_host.users[0].deptname) }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {% if current_host.users[1] %}
+                                                {{ sub_managerform.sub_deptname(class="input", placeholder=current_host.users[1].deptname, value=current_host.users[1].deptname) }}
+                                            {% else %}
+                                                {{ sub_managerform.sub_deptname(class="input") }}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>管理員</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_username(class="input", placeholder=current_host.users[0].username, value=current_host.users[0].username) }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {% if current_host.users[1] %}
+                                                {{ sub_managerform.sub_username(class="input", placeholder=current_host.users[1].username, value=current_host.users[1].username) }}
+                                            {% else %}
+                                                {{ sub_managerform.sub_username(class="input") }}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>人員證號</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_userid(class="input", placeholder=current_host.users[0].userid, value=current_host.users[0].userid) }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {% if current_host.users[1] %}
+                                                {{ sub_managerform.sub_userid(class="input", placeholder=current_host.users[1].userid, value=current_host.users[1].userid) }}
+                                            {% else %}
+                                                {{ sub_managerform.sub_userid(class="input") }}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>身分</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_ident(class="input", placeholder=current_host.users[0].ident, value=current_host.users[0].ident) }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {% if current_host.users[1] %}
+                                                {{ sub_managerform.sub_ident(class="input", placeholder=current_host.users[1].ident, value=current_host.users[1].ident) }}
+                                            {% else %}
+                                                {{ sub_managerform.sub_ident(class="input") }}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>聯絡電話</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_officephone(class="input", placeholder=current_host.users[0].officephone, value=current_host.users[0].officephone) }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {% if current_host.users[1] %}
+                                                {{ sub_managerform.sub_officephone(class="input", placeholder=current_host.users[1].officephone, value=current_host.users[1].officephone) }}
+                                            {% else %}
+                                                {{ sub_managerform.sub_officephone(class="input") }}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>信箱</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_email(class="input", placeholder=current_host.users[0].email, value=current_host.users[0].email) }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {% if current_host.users[1] %}
+                                                {{ sub_managerform.sub_email(class="input", placeholder=current_host.users[1].email, value=current_host.users[1].email) }}
+                                            {% else %}
+                                                {{ sub_managerform.sub_email(class="input") }}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>配置地點</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_allocation(class="input", placeholder=current_host.users[0].allocation, value=current_host.users[0].allocation) }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {% if current_host.users[1] %}
+                                                {{ sub_managerform.sub_allocation(class="input", placeholder=current_host.users[1].allocation, value=current_host.users[1].allocation) }}
+                                            {% else %}
+                                                {{ sub_managerform.sub_allocation(class="input") }}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        {% else %}
+                            <table id="mgrFormTable">
+                                <tr>
+                                    <th>單位名稱</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_deptname(class="input") }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ sub_managerform.sub_deptname(class="input") }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>管理員</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_username(class="input") }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ sub_managerform.sub_username(class="input") }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>人員證號</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_userid(class="input") }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ sub_managerform.sub_userid(class="input") }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>身分</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_ident(class="input") }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ sub_managerform.sub_ident(class="input") }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>聯絡電話</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_officephone(class="input") }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ sub_managerform.sub_officephone(class="input") }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>信箱</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_email(class="input") }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ sub_managerform.sub_email(class="input") }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>配置地點</th>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ main_managerform.main_allocation(class="input") }}
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div class="tableform">
+                                            {{ sub_managerform.sub_allocation(class="input") }}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{{ allocationform.hidden_tag() }}
+<div class="container">
+    <div class="container-header">
+        <div class="container-header-left">
+            <button class="btn-toggle show" type="button" onclick="toggleContainer(this), hideBtn()">單位 IP 分配▲</button>
+        </div>
+        <div id="btn-field" class="container-header-right" style="display: flex;">
+            {{ allocationform.save(class="btn-submit", onclick="collectData()") }}
+        </div>
+    </div>
+    <div class="container-content" style="display: block;">
+        <table id="allocationTable">
+            <thead>
+                <tr>
+                    <th scope="col">IP 位址</th>
+                    <th scope="col">MAC 位址</th>
+                    <th scope="col">人員</th>
+                    <th scope="col">備註</th>
+                    <th scope="col">設備</th>
+                </tr>
+            </thead>
+            <tbody id="{{ current_host.id }}">
+                {% for allocation in host_allocation %}
+                <tr id="{{ allocation.id }}">
+                    <td class="allocation_td">{{ allocation.ip }}</td>
+                    <td>
+                        <div class="tableform">
+                            {{ allocationform.mac(class="input", placeholder=allocation.mac) }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="tableform">
+                            {{ allocationform.owner(class="input", placeholder=allocation.owner) }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="tableform">
+                            {{ allocationform.comment(class="input", placeholder=allocation.comment) }}
+                        </div>
+                    </td>
+                    <td>
+                        <!-- 將資料庫的資料預設給選項 -->
+                        {% set selected_option = allocationform.device.process_data(allocation.device) %}
+                        <div class="tableform">
+                            {{ allocationform.device(class="input") }}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // ip calculator 程式碼
+    // 計算ip
+    function Calculate() {
+        updateNetmask();
+        calculateMinMaxIP();
+    }
+
+    function updateNetmask() {
+        const subnetInput = document.getElementById('subnet');
+        const netmaskInput = document.getElementById('netmask');
+
+        const subnetValue = subnetInput.value;
+        const netmask = calculateNetmask(subnetValue);
+
+        netmaskInput.value = netmask;
+    }
+
+    function calculateNetmask(subnetValue) {
+        const subnetMaskLength = parseInt(subnetValue);
+        const netmaskParts = [0, 0, 0, 0];
+
+        for (let i = 0; i < subnetMaskLength; i++) {
+            netmaskParts[Math.floor(i / 8)] |= 1 << (7 - (i % 8));
+        }
+        const netmask = netmaskParts.join('.');
+
+        return netmask;
+    }
+
+    function calculateMinMaxIP() {
+        const ipInputAB = document.getElementById('ip_ab');
+        const ipInputC = document.querySelector('input[id="ip_c"]');
+        const ipInputD = document.querySelector('input[id="ip_d"]');
+        const netmaskInput = document.getElementById('netmask');
+        const subnetInput = document.getElementById('subnet');
+        
+        var ipC = ipInputC.value;
+        var ipD = ipInputD.value;
+        
+        if (!ipC) {
+            ipC = ipInputC.placeholder;
+        }
+        
+        if (!ipD) {
+            ipD = ipInputD.placeholder;
+        }
+
+        ipInput = ipInputAB.value + '.' + String(ipC) + '.' + String(ipD);
+
+        const subnet = parseInt(subnetInput.value);
+
+        // Helper function to convert decimal IP to binary
+        function decimalToBinary(ip) {
+            return ip.split('.').map(part => parseInt(part).toString(2).padStart(8, '0')).join('');
+        }
+
+        // Convert IP and netmask to binary
+        const ipBinary = decimalToBinary(ipInput);
+        const netmaskBinary = decimalToBinary(netmaskInput.value);
+
+        // Calculate network address (minimum IP)
+        const networkBinary = ipBinary.slice(0, netmaskBinary.indexOf('0')) + '0'.repeat(32 - subnet);
+        const networkDecimal = [
+            parseInt(networkBinary.slice(0, 8), 2),
+            parseInt(networkBinary.slice(8, 16), 2),
+            parseInt(networkBinary.slice(16, 24), 2),
+            parseInt(networkBinary.slice(24), 2) + 1,
+        ].join('.');
+
+        // Calculate broadcast address (maximum IP)
+        const broadcastBinary = ipBinary.slice(0, netmaskBinary.indexOf('0')) + '1'.repeat(32 - subnet);
+        const broadcastDecimal = [
+            parseInt(broadcastBinary.slice(0, 8), 2),
+            parseInt(broadcastBinary.slice(8, 16), 2),
+            parseInt(broadcastBinary.slice(16, 24), 2),
+            parseInt(broadcastBinary.slice(24), 2) - 1,
+        ].join('.');
+
+        // Calulate gateway address
+        const gatewayDecimal = [
+            parseInt(broadcastBinary.slice(0, 8), 2),
+            parseInt(broadcastBinary.slice(8, 16), 2),
+            parseInt(broadcastBinary.slice(16, 24), 2),
+            parseInt(broadcastBinary.slice(24), 2) - 2,
+        ].join('.');
+
+
+        const host_minInput = document.getElementById('hostMin');
+        const host_maxInput = document.getElementById('hostMax');
+        const gatewayInput = document.getElementById('gateway');
+
+        host_minInput.value = networkDecimal;
+        host_maxInput.value = broadcastDecimal;
+        gatewayInput.value = gatewayDecimal;
+    }
+
+    // 管理員程式碼
+    // 發送 Ajax 請求查詢資料
+    function searchManager() {
+        const queryInput = document.getElementById('input-value').value;
+
+        console.log(queryInput);
+
+        if (queryInput) {
+
+            const loading = document.getElementById("loading-search");
+            const searchBtn = document.getElementById("search");
+    
+            searchBtn.style.display = "none";
+            loading.style.display = "inline-block";
+    
+            fetch('/assign/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(queryInput),
+            })
+                .then(response => {
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('input-value').value = '';
+    
+                    searchBtn.style.display = "inline-block";
+                    loading.style.display = "none";
+    
+                    const message = data['message'];
+
+                    if (message) {
+                        updateSearchTable(data['result']);
+                    } else {
+                        slideInToast(data['title'], data['content']);
+                    }
+    
+                })
+                .catch(error => {
+                    console.log(error);
+                });
+        }
+    }
+
+    // 更新查詢結果
+    function updateSearchTable(result) {
+        const tbody = document.getElementById('search-result');
+        const rows = tbody.getElementsByTagName('tr');
+        const cells = rows[0].getElementsByTagName('td');
+
+        tbody.style.display = "table-row-group";
+
+        for (let i = 0; i < cells.length; i++) {
+            const field = cells[i].getAttribute('data-field');
+
+            if (result[field]) {
+                cells[i].textContent = result[field];
+            }
+        }
+    }
+
+    // 指定管理員
+    function assignManager(button) {
+        const row = button.closest('tr');
+        const cells = row.cells;
+        const form = document.getElementById('dataForm');
+
+        const btnNameLength = button.textContent.length;
+        const btnName = button.textContent.charAt(btnNameLength - 2);
+        var managerOrder;
+
+        if (btnName === "一") {
+            managerOrder = "main";
+        } else if (btnName === "二") {
+            managerOrder = "sub";
+        }
+        
+        for (let i = 1; i < cells.length - 1; i++) {
+            const cellValue = cells[i].textContent;
+            const field = cells[i].getAttribute('data-field');
+
+            const inputElement = form.querySelector(`[name="${managerOrder}_${field}"]`);
+            if (inputElement) {
+                inputElement.value = cellValue;
+            }
+        }
+
+        const mainManagerUserID = form.querySelector(`[name="main_userid"]`).value;
+        const subManagerUserID = form.querySelector(`[name="sub_userid"]`).value;
+
+        if (mainManagerUserID == subManagerUserID) {
+            const inputElement = form.querySelectorAll(`[name^="sub_"]`);
+
+            for (let i = 0; i < inputElement.length - 1; i++) {
+                inputElement[i].value = "";
+            }
+
+            slideInToast('alert', "已指定此管理員");
+        }
+
+        if (mainManagerUserID == "" && subManagerUserID) {
+            const mainManagerInputElements = document.querySelectorAll(`[name^="main_"]`);
+            const subManagerInputElements = document.querySelectorAll(`[name^="sub_"]`);
+            
+            for (let i = 0; i < mainManagerInputElements.length - 1; i++) {
+                mainManagerInputElements[i].value = subManagerInputElements[i].value;
+                subManagerInputElements[i].value = "";
+            }
+        }
+    }
+
+    // 動態網頁程式碼
+    // 展開內容
+    function toggleContainer(toggleBtn) {
+        const btnName = toggleBtn.textContent.slice(0, -1);
+        const selectedContainer = toggleBtn.closest('.container');
+        const hiddenContent = selectedContainer.querySelector(".container-content");
+
+        if (toggleBtn.classList.contains("show")) {
+            // 已經被選取
+            toggleBtn.textContent = btnName + "▼";
+            toggleBtn.classList.remove("show");
+            // 隱藏 Searchform
+            hiddenContent.style.display = "none";
+        } else {
+            // 未被選
+            toggleBtn.textContent = btnName + "▲";
+            toggleBtn.classList.add("show");
+            // 顯示 Searchform
+            hiddenContent.style.display = "block";
+        }
+    }
+
+    // host_allocation 程式碼
+    // 收集 allocationTable 資料
+    function collectData() {
+        const table = document.getElementById("allocationTable");
+        const tbody = table.getElementsByTagName("tbody");
+        const rows = table.getElementsByTagName("tr");
+
+        // 取得當前 hostid
+        const hostId = tbody[0].id;
+        // 取得管理員資料; 回傳資料或空值
+
+        data = [];
+        data.push(hostId);
+
+        // 將所有資料存進 list
+        for (var i = 1; i < rows.length; i++) {
+            var row = rows[i];
+            var rowData = {};
+
+            // 儲存 id
+            rowData["id"] = row.id;
+
+            // 儲存 mac, owner; inputs[0]是csrf_token
+            var inputs = row.getElementsByTagName("input");
+            for (var j = 0; j < inputs.length; j++) {
+                var input = inputs[j];
+
+                if (input.value) {
+                    rowData[input.name] = input.value;
+                } else {
+                    rowData[input.name] = input.placeholder;
+                }
+            }
+
+            // 儲存 device
+            var selects = row.getElementsByTagName("select");
+            rowData["device"] = selects[0].value;
+        
+            // 將資料存進 result
+            data.push(rowData);
+        }
+
+        // console.log(data);
+        // 發送 Ajax 請求更新 host allocation
+        fetch('/assign/allocation', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data),
+        })
+        .then(response => {
+            return response.json();
+        })
+        .then(data => {
+            slideInToast(data['title'] ,data['content']);
+            console.log(data);
+            // reloadPosition();
+        })
+        .catch(error => {
+            console.log(error);
+        })
+    }
+
+    // 隱藏按鈕
+    function hideBtn() {
+        const btnField = document.getElementById('btn-field');
+
+        var btnDisplay = btnField.style.display;
+        
+        if (btnDisplay == 'none') {
+            btnField.style.display = 'flex';
+        } else if (btnDisplay == 'flex') {
+            btnField.style.display = 'none';
+        }
+    }
+
+    // 清空管理員
+    function removeManager() {
+        const mainManagerInputElements = document.querySelectorAll(`[name^="main_"]`);
+        const subManagerInputElements = document.querySelectorAll(`[name^="sub_"]`);
+
+        
+        for (let i = 0; i < mainManagerInputElements.length - 1; i++) {
+            mainManagerInputElements[i].value = "";
+            subManagerInputElements[i].value = "";
+        }
+    }
+
+    // 一鍵移除資料
+    function removeHostTableData() {
+        const confirmDelete = confirm("確定要移除嗎?");
+
+        if (confirmDelete) {
+            const HostTable = document.getElementById('HostTable');
+            const tbodyElement = HostTable.querySelectorAll('tbody');
+            const trElements = tbodyElement[0].querySelectorAll('tr');
+
+            var removeHostId = [];
+            for (let i = 0; i < trElements.length; i++ ) {
+                removeHostId.push(trElements[i].id);
+
+                const tdElements = trElements[i].querySelectorAll('td');
+
+                tdElements[7].textContent = '';
+                tdElements[8].textContent = '';
+                tdElements[9].textContent = '';
+            }
+
+
+            // Ajax
+            fetch('/list/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(removeHostId),
+            })
+            .then(response => {
+                return response.json();
+            })
+            .then(data => {
+                slideInToast(data['title'], data['content']);
+            })
+            .catch(error => {
+                console.log(error);
+            })
+        }
+
+    }
+</script>
+
+{% endblock %}

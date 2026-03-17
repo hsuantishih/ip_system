@@ -1,0 +1,5 @@
+# 排除 .env 檔案
+.env
+
+# 排除 migrations 資料夾
+migrations/

@@ -1,0 +1,410 @@
+{% block style %}
+<link rel="stylesheet" href="../static/css/table.css">
+{% endblock %}
+
+{% include 'toast.html' %}
+
+<!-- table -->
+<table class="list" id="HostTable">
+    <thead>
+        <tr>
+            <th class="list_th" scope="col">Type</th>
+            <th class="list_th" scope="col">Class C</th>
+            <th class="list_th" scope="col">Min</th>
+            <th class="list_th" scope="col">Max</th>
+            <th class="list_th" scope="col">Gateway</th>
+            <th class="list_th" scope="col">Subnet</th>
+            <th class="list_th" scope="col">IP數</th>
+            <th class="list_th list_deptname" scope="col">使用單位名稱</th>
+            <th class="list_th" scope="col">管理員(一)</th>
+            <th class="list_th" scope="col">管理員(二)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for host in hosts %}
+        <tr id="{{ host.id }}" onclick="searchData(this)">
+            <td class="list_td">{{ host.host_type }}</td>
+            <td class="list_td">{{ host.host_class_c }}</td>
+            <td class="list_td">{{ host.host_min }}</td> <!-- 合併字串 -->
+            <td class="list_td">{{ host.host_max }}</td> <!-- 合併字串 -->
+            <td class="list_td">{{ host.gateway }}</td>
+            <td class="list_td">{{ host.subnet }}</td>
+            <td class="list_td">{{ 2**(32 - host.subnet) - 2 }}</td>
+            <td class="list_td list_deptname">{{ host.host_deptname }}</td>
+            {% if host.users[0] %}
+                <td class="list_td">{{ host.users[0].username }}</td>
+            {% else %}
+                <td class="list_td"></td>
+            {% endif %}
+            {% if host.users[1] %}
+                <td class="list_td">{{ host.users[1].username }}</td>
+            {% else %}
+                <td class="list_td"></td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- popup -->
+<div id="overlay" class="overlay" style="display: none;">
+    <div class="popup-border">
+        <div id="popup" class="popup">
+            <div class="popup-col">
+                <div class="popup-header">
+                    <h2>詳細資訊</h2>
+                </div>
+                <div class="popup-host-col">
+                    <div class="popup-subheader">
+                        <h4>IP 網段</h4>
+                    </div>
+                    <div id="hostContent" class="popup-content">
+                        <table>
+                            <tr>
+                                <th>Host Min</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>Host Max</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>Host Gateway</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>Subnet</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>網段數</th>
+                                <td></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="popup-department-col">
+                    <div class="popup-subheader">
+                        <h4>使用單位</h4>
+                    </div>
+                    <div id="departmentContent" class="popup-content">
+                        <table>
+                            <tr>
+                                <th>名稱</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>備註</th>
+                                <td></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="popup-main-manager-col">
+                    <div class="popup-subheader">
+                        <h4>管理員(一)</h4>
+                    </div>
+                    <div id="mainManagerContent" class="popup-content">
+                        <table>
+                            <tr>
+                                <th>單位</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>管理員</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>人員證號</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>身分</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>聯絡電話</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>信箱</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>配置地點</th>
+                                <td></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="popup-sub-manager-col">
+                    <div class="popup-subheader">
+                        <h4>管理員(二)</h4>
+                    </div>
+                    <div id="subManagerContent" class="popup-content">
+                        <table>
+                            <tr>
+                                <th>單位</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>管理員</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>人員證號</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>身分</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>聯絡電話</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>信箱</th>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>配置地點</th>
+                                <td></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="popup-footer">
+                    <button class="btn-edit" onclick="redirectToPage()">編輯</button>
+                    <button id="removeBtn" class="btn-edit" onclick="removeButton()" style="display: none;">移除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Redirect to Other Page
+    function redirectToPage() {
+        const hostContent = document.getElementById("hostContent");
+        const tables = hostContent.getElementsByTagName('table');
+
+        const host_id = tables[0].id;
+        window.location.href = `/assign/${host_id}`;
+    }
+
+    // Ajax delete host item
+    function removeButton() {
+        const confirmDelete = confirm("確定要移除嗎?");
+
+        const hostContent = document.getElementById("hostContent");
+        const tables = hostContent.getElementsByTagName('table');
+
+        const hostid = [tables[0].id];
+        
+        if (confirmDelete) {
+            // Ajax
+            fetch('/list/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(hostid),
+            })
+            .then(response => {
+                return response.json();
+            })
+            .then(data => {
+                removeData();
+                slideInToast(data['title'], data['content']);
+            })
+            .catch(error => {
+                console.log(error);
+            })
+        }
+    }
+
+    // Change background color base on class c
+    var table = document.getElementById("HostTable");
+    var rows = table.getElementsByTagName("tr");
+    for (var i = 2; i < rows.length; i++) {
+        var row = rows[i];
+        var cells = row.getElementsByTagName("td");
+        var classCell = cells[1];
+
+        // previous row
+        if (i - 1 > 0) {
+            var prevRow = rows[i - 1];
+            var prevCells = prevRow.getElementsByTagName("td");
+            var prevClassCell = prevCells[1];
+
+            // 判斷跟上一行值是否相等
+            if (classCell.textContent !== prevClassCell.textContent) {
+                if (!prevRow.classList.contains('block')) {
+                    row.classList.add('block');
+                }
+            } else {
+                if (prevRow.classList.contains('block')) {
+                    row.classList.add('block');
+                }
+            }
+        }
+    }
+
+    // Popup
+    function displayPopUp(data) {
+        const overlay = document.getElementById("overlay");
+        // const popup = document.getElementById('popup');
+        const removeBtn = document.getElementById('removeBtn');
+
+        console.log(data);
+
+        if (Object.keys(data['user']).length === 0) {
+            const popupMainMgr = document.querySelector('.popup-main-manager-col');
+            const popupSubMgr = document.querySelector('.popup-sub-manager-col');
+            
+            popupMainMgr.style.display = 'none';
+            popupSubMgr.style.display = 'none';
+        } else {
+            if (Object.keys(data['user']).length === 1) {
+                const popupSubMgr = document.querySelector('.popup-sub-manager-col');
+                popupSubMgr.style.display = 'none';
+            }
+            updateMgr(data['user']);
+            removeBtn.style.display = 'block';
+        }
+
+        var host = data['host'];
+
+        if (host['host_deptname'] === '') {
+            const popupDept = document.querySelector('.popup-department-col');
+
+            popupDept.style.display = 'none';
+        } else {
+            updateDept(data['host']);
+            removeBtn.style.display = 'block';
+        }
+
+        updateHost(data['host']);
+        
+        overlay.style.display = 'flex';
+
+        window.addEventListener("click", function(event) {
+            // 若點擊為 popup 以外，則關閉 popup
+            if (event.target === overlay) {
+                const popupDept = document.querySelector('.popup-department-col');
+                const popupMainMgr = document.querySelector('.popup-main-manager-col');
+                const popupSubMgr = document.querySelector('.popup-sub-manager-col');
+                const removeBtn = document.getElementById('removeBtn');
+
+                popupDept.style.display = 'grid';
+                popupMainMgr.style.display = 'grid';
+                popupSubMgr.style.display = 'grid';
+                removeBtn.style.display = 'none';
+
+                overlay.style.display = 'none';
+            }
+        });
+
+    }
+
+    function updateHost(host) {
+        const hostMin = host['host_type'] + host['host_class_c'] + host['host_min'];
+        const hostMax = host['host_type'] + host['host_class_c'] + host['host_max'];
+        const gateway = host['host_type'] + host['host_class_c'] + host['gateway'];
+        const subnet = host['subnet'];
+        const ipNum = 2 ** (32 - subnet) - 2;
+
+        const hostData = [hostMin, hostMax, gateway, subnet, ipNum];
+
+        const hostContent = document.getElementById('hostContent');
+        const tables = hostContent.getElementsByTagName('table');
+        const tdElements = tables[0].getElementsByTagName('td');
+
+        tables[0].id = host['id'];
+
+        for (let i = 0; i < tdElements.length; i++) {
+            tdElements[i].textContent = hostData[i];
+        }
+    }
+
+    function updateMgr(user) {
+        const mainManager = user[0];
+
+        const managerData = [mainManager['deptname'], mainManager['username'], mainManager['userid'], mainManager['ident'], mainManager['officephone'], mainManager['email'], mainManager['allocation']];
+
+        const managerContent = document.getElementById('mainManagerContent');
+        const tables = managerContent.getElementsByTagName('table');
+        const tdElements = tables[0].getElementsByTagName('td');
+
+        for (let i = 0; i < tdElements.length; i++) {
+            tdElements[i].textContent = managerData[i];
+        }
+
+        if (user[1]) {
+            const subManager = user[1];
+
+            const managerData = [subManager['deptname'], subManager['username'], subManager['userid'], subManager['ident'], subManager['officephone'], subManager['email'], subManager['allocation']];
+
+            const managerContent = document.getElementById('subManagerContent');
+            const tables = managerContent.getElementsByTagName('table');
+            const tdElements = tables[0].getElementsByTagName('td');
+
+            for (let i = 0; i < tdElements.length; i++) {
+                tdElements[i].textContent = managerData[i];
+            }
+        }
+    }
+
+    function updateDept(host) {
+        const deptData = [host['host_deptname'], host['comment']];
+
+        const departmentContent = document.getElementById('departmentContent');
+        const tables = departmentContent.getElementsByTagName('table');
+        const tdElements = tables[0].getElementsByTagName('td');
+
+        for (let i = 0; i < tdElements.length; i++) {
+            tdElements[i].textContent = deptData[i];
+        } 
+    }
+
+    function searchData(button) {
+        id = button.id;
+
+        fetch('/list/query', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(id),
+        })
+        .then(response => {
+            return response.json();
+        })
+        .then(data => {
+            console.log(data);
+            displayPopUp(data);
+        })
+        .catch(error => {
+            console.log(error);
+        })
+    }
+
+    function removeData() {
+        const hostContent = document.getElementById("hostContent");
+        const tables = hostContent.getElementsByTagName('table');
+
+        const host_id = tables[0].id;
+
+        const trHost = document.querySelector(`tr[id="${host_id}"]`);
+        const tdElements = trHost.getElementsByTagName('td');
+
+        tdElements[7].textContent = '';
+        tdElements[8].textContent = '';
+        tdElements[9].textContent = '';
+
+        const overlay = document.getElementById("overlay");
+        overlay.click();
+    }
+
+</script>
